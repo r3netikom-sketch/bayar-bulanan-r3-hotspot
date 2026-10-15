@@ -1,0 +1,420 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Iuran WiFi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style> body { font-family: Inter, system-ui, -apple-system, sans-serif; } </style>
+</head>
+<body class="bg-gray-50">
+  <!-- PUBLIC VIEW -->
+  <div id="public-view" class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">Cek Tagihan WiFi</h1>
+        <p class="text-gray-500 text-sm mt-1">Masukkan Nama atau Nomor HP untuk cek tagihan</p>
+      </div>
+      <form id="formCek" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nama atau Nomor HP</label>
+          <input type="text" id="inputKeyword" placeholder="Contoh: Budi / 081234567890" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <button type="submit" id="btnCek" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition duration-200 flex items-center justify-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          Cek Tagihan
+        </button>
+      </form>
+      <div id="hasilTagihan" class="mt-6 hidden"></div>
+      <div class="mt-6 text-center">
+        <button onclick="toggleToAdmin()" class="text-xs text-gray-500 hover:text-gray-700 underline">Login Admin</button>
+      </div>
+    </div>
+  </div>
+  <!-- ADMIN VIEW -->
+  <div id="admin-view" class="hidden">
+    <!-- Login Admin -->
+    <div id="admin-login" class="min-h-screen flex items-center justify-center p-4">
+      <div class="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6">
+        <div class="text-center mb-6">
+          <h2 class="text-xl font-bold text-gray-800">Login Admin</h2>
+          <p class="text-gray-500 text-sm mt-1">Masukkan PIN untuk masuk panel admin</p>
+        </div>
+        <form id="formLoginAdmin" class="space-y-4">
+          <input type="password" id="inputPin" placeholder="Masukkan PIN" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+          <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-medium py-3 rounded-xl transition">Masuk</button>
+        </form>
+        <div class="mt-4 text-center">
+          <button onclick="toggleToPublic()" class="text-xs text-gray-500 hover:text-gray-700 underline">Kembali ke Cek Tagihan</button>
+        </div>
+      </div>
+    </div>
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" class="hidden">
+      <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16 items-center">
+            <h1 class="text-lg font-semibold text-gray-800">Panel Admin - Iuran WiFi</h1>
+            <button onclick="logoutAdmin()" class="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="flex flex-wrap gap-2 mb-6">
+          <button onclick="showAdminTab('member')" id="tab-btn-member" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white">Daftar Member</button>
+          <button onclick="showAdminTab('input')" id="tab-btn-input" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Input Iuran Bulanan</button>
+          <button onclick="showAdminTab('rekap')" id="tab-btn-rekap" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300">Rekap & Total</button>
+        </div>
+        <!-- Tab Member -->
+        <div id="tab-member" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+            <h2 class="text-lg font-semibold text-gray-800">Daftar Member</h2>
+            <button onclick="openMemberModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Tambah Member</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">ID</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Nama</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">No HP</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Alamat</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Tarif</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Status</th>
+                  <th class="text-center px-4 py-3 text-gray-600 font-medium">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="memberTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Tab Input -->
+        <div id="tab-input" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-semibold text-gray-800">Input Iuran Bulanan</h2>
+              <div class="flex items-center gap-2">
+                <input type="month" id="inputPeriode" class="px-3 py-2 border border-gray-300 rounded-xl text-sm">
+                <button onclick="loadInputIuran()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl text-sm">Load</button>
+              </div>
+            </div>
+            <button onclick="saveInputIuran()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Simpan Pembayaran</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="text-left px-4 py-3"><input type="checkbox" id="checkAll" onchange="toggleCheckAll()"></th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Nama</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Tarif Default</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Nominal Bayar</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Sudah Bayar</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Tgl Bayar</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Catatan</th>
+                </tr>
+              </thead>
+              <tbody id="inputTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Tab Rekap -->
+        <div id="tab-rekap" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-4 flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center">
+            <div class="flex items-center gap-3">
+              <h2 class="text-lg font-semibold text-gray-800">Rekap & Total</h2>
+              <div class="flex items-center gap-2">
+                <input type="month" id="rekapPeriode" class="px-3 py-2 border border-gray-300 rounded-xl text-sm">
+                <button onclick="loadRekap()" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl text-sm">Load</button>
+              </div>
+            </div>
+            <button onclick="exportCSV()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium">Export CSV</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Nama</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Tarif</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Nominal Bayar</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Status</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Tgl Bayar</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Metode</th>
+                  <th class="text-left px-4 py-3 text-gray-600 font-medium">Catatan</th>
+                </tr>
+              </thead>
+              <tbody id="rekapTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+          <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-green-50 rounded-xl p-3"><p class="text-xs text-green-700">Total Terkumpul</p><p class="text-lg font-semibold text-green-800" id="sumTerkumpul">Rp 0</p></div>
+            <div class="bg-blue-50 rounded-xl p-3"><p class="text-xs text-blue-700">Lunas</p><p class="text-lg font-semibold text-blue-800" id="sumLunas">0</p></div>
+            <div class="bg-amber-50 rounded-xl p-3"><p class="text-xs text-amber-700">Belum Bayar</p><p class="text-lg font-semibold text-amber-800" id="sumBelum">0</p></div>
+            <div class="bg-red-50 rounded-xl p-3"><p class="text-xs text-red-700">Sisa Belum Terkumpul</p><p class="text-lg font-semibold text-red-800" id="sumSisa">Rp 0</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Member -->
+  <div id="memberModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4" id="memberModalTitle">Tambah Member</h3>
+      <input type="hidden" id="memberIdInput">
+      <div class="space-y-3">
+        <div><label class="block text-sm text-gray-700 mb-1">Nama</label><input type="text" id="memberNama" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+        <div><label class="block text-sm text-gray-700 mb-1">No HP</label><input type="text" id="memberNoHp" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+        <div><label class="block text-sm text-gray-700 mb-1">Alamat (untuk pendataan wilayah & kunjungan)</label><textarea id="memberAlamat" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></div>
+        <div><label class="block text-sm text-gray-700 mb-1">Tarif Default (Rp)</label><input type="number" id="memberTarif" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+        <div id="memberStatusWrap" class="hidden"><label class="block text-sm text-gray-700 mb-1">Status</label><select id="memberStatus" class="w-full px-4 py-2 border border-gray-300 rounded-xl"><option value="AKTIF">AKTIF</option><option value="NONAKTIF">NONAKTIF</option></select></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeMemberModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-xl">Batal</button>
+        <button onclick="saveMember()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl">Simpan</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal DANA -->
+  <div id="danaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Bayar via DANA</h3>
+      <p class="text-sm text-gray-600 mb-4">Masukkan nominal yang mau dibayar. Bisa bayar penuh atau kurang.</p>
+      <div class="space-y-3">
+        <div><label class="block text-sm text-gray-700 mb-1">Nama</label><input type="text" id="danaNama" class="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50" readonly></div>
+        <div><label class="block text-sm text-gray-700 mb-1">Periode</label><input type="text" id="danaPeriode" class="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50" readonly></div>
+        <div><label class="block text-sm text-gray-700 mb-1">Tarif Default</label><input type="text" id="danaTarif" class="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50" readonly></div>
+        <div><label class="block text-sm text-gray-700 mb-1">Nominal Bayar (Rp)</label><input type="number" id="danaNominal" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"></div>
+        <div class="text-xs text-gray-500">Alamat: <span id="danaAlamat"></span></div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button onclick="closeDanaModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-xl">Batal</button>
+        <button onclick="lanjutKeDana()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl">Lanjut ke DANA</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz69HpFxZ_oscP8GZsr2D7zrrpegZiuuJdipzpDiqKwU9RC_bzHx6v8InXeh9t2CXiK/exec';
+    let adminToken = null;
+    let currentTagihanData = null;
+    let danaPhone = '6287863885084';
+    let waAdmin = '6287863885084';
+    let memberListData = [];
+    let inputIuranData = [];
+    let rekapData = [];
+    let rekapSummary = {};
+
+    function formatRupiah(num) {
+      const n = Number(num)||0;
+      return 'Rp ' + n.toLocaleString('id-ID');
+    }
+    function getCurrentYYYYMM() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    }
+    function setPeriodeInputs() {
+      const cur = getCurrentYYYYMM();
+      if (document.getElementById('inputPeriode')) document.getElementById('inputPeriode').value = cur;
+      if (document.getElementById('rekapPeriode')) document.getElementById('rekapPeriode').value = cur;
+    }
+    function toggleToAdmin() {
+      document.getElementById('public-view').classList.add('hidden');
+      document.getElementById('admin-view').classList.remove('hidden');
+      document.getElementById('admin-login').classList.remove('hidden');
+      document.getElementById('admin-dashboard').classList.add('hidden');
+      document.getElementById('inputPin').value = '';
+    }
+    function toggleToPublic() {
+      document.getElementById('admin-view').classList.add('hidden');
+      document.getElementById('public-view').classList.remove('hidden');
+    }
+    function postGAS(data) {
+      return fetch(GAS_URL, { method: 'POST', body: JSON.stringify(data) }).then(r=>r.json());
+    }
+    async function loadConfig() {
+      try { const cfg = await postGAS({action:'getConfig'}); if (cfg.dana) danaPhone = cfg.dana; if (cfg.wa) waAdmin = cfg.wa; } catch(e) {}
+    }
+    // Public
+    document.getElementById('formCek').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const kw = document.getElementById('inputKeyword').value.trim();
+      const btn = document.getElementById('btnCek');
+      btn.disabled = true; btn.innerHTML = '<svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mencari...';
+      try {
+        const res = await postGAS({action:'getTagihanPublik', keyword:kw, periode:getCurrentYYYYMM()});
+        if (!res.success) { Swal.fire('Tidak ditemukan', res.message, 'info'); document.getElementById('hasilTagihan').classList.add('hidden'); return; }
+        currentTagihanData = res;
+        renderHasilTagihan(res);
+      } catch(err) { Swal.fire('Error', 'Gagal terhubung ke server', 'error'); }
+      finally { btn.disabled=false; btn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg> Cek Tagihan'; }
+    });
+    function renderHasilTagihan(res) {
+      const wrap = document.getElementById('hasilTagihan');
+      let html = '<div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">';
+      html += '<div class="mb-3"><p class="text-xs text-gray-500">Periode</p><p class="text-sm font-semibold text-gray-800">'+res.periode+'</p></div>';
+      html += '<div class="space-y-2 mb-4"><div class="flex justify-between"><p class="text-sm text-gray-600">Nama</p><p class="text-sm font-medium text-gray-800">'+res.member.nama+'</p></div><div class="flex justify-between"><p class="text-sm text-gray-600">No HP</p><p class="text-sm font-medium text-gray-800">'+res.member.no_hp+'</p></div><div class="flex justify-between"><p class="text-sm text-gray-600">Tarif Default</p><p class="text-sm font-medium text-gray-800">'+formatRupiah(res.member.tarif_default)+'</p></div>';
+      if (res.member.alamat) html += '<div><p class="text-xs text-gray-500 mt-2">Alamat</p><p class="text-sm text-gray-700 mt-1 leading-relaxed">'+res.member.alamat+'</p></div>';
+      html += '<div class="flex justify-between pt-2 border-t border-gray-200"><p class="text-sm text-gray-600">Status</p><p class="text-sm font-semibold '+(res.status==='LUNAS'?'text-green-600':'text-amber-600')+'">'+res.status+'</p></div>';
+      if (res.status==='LUNAS' && res.lunasData) { html += '<div class="flex justify-between"><p class="text-sm text-gray-600">Nominal Bayar</p><p class="text-sm font-medium text-gray-800">'+formatRupiah(res.lunasData.nominal)+'</p></div><div class="flex justify-between"><p class="text-sm text-gray-600">Tgl Bayar</p><p class="text-sm font-medium text-gray-800">'+res.lunasData.tgl_bayar+'</p></div>'; }
+      html += '</div>';
+      if (res.status !== 'LUNAS') {
+        html += '<div class="flex flex-col gap-2"><button onclick="openDanaModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl">Bayar via DANA</button><button onclick="mintaDidatengin()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 rounded-xl">Minta didatengin rumah</button></div>';
+      } else {
+        html += '<div class="text-center text-sm text-green-700 bg-green-50 rounded-xl py-2">Sudah Lunas</div>';
+      }
+      html += '</div>';
+      wrap.innerHTML = html; wrap.classList.remove('hidden');
+    }
+    function openDanaModal() {
+      if (!currentTagihanData) return;
+      const m = currentTagihanData.member;
+      document.getElementById('danaNama').value = m.nama;
+      document.getElementById('danaPeriode').value = currentTagihanData.periode;
+      document.getElementById('danaTarif').value = formatRupiah(m.tarif_default);
+      document.getElementById('danaNominal').value = m.tarif_default;
+      document.getElementById('danaAlamat').textContent = m.alamat || '-';
+      document.getElementById('danaModal').classList.remove('hidden');
+      document.getElementById('danaModal').classList.add('flex');
+    }
+    function closeDanaModal() {
+      document.getElementById('danaModal').classList.add('hidden');
+      document.getElementById('danaModal').classList.remove('flex');
+    }
+    function lanjutKeDana() {
+      if (!currentTagihanData) return;
+      const amount = Number(document.getElementById('danaNominal').value)||0;
+      if (amount <= 0) { Swal.fire('Perhatian','Nominal harus lebih dari 0','warning'); return; }
+      const m = currentTagihanData.member; const periode = currentTagihanData.periode;
+      const text = encodeURIComponent('Iuran WiFi ' + m.nama + ' - Bulan ' + periode);
+      const url = 'https://link.dana.id/send?phone=' + danaPhone + '&amount=' + amount + '&comment=' + text;
+      window.open(url, '_blank');
+      closeDanaModal();
+    }
+    async function mintaDidatengin() {
+      if (!currentTagihanData) return;
+      const m = currentTagihanData.member; const periode = currentTagihanData.periode;
+      try { await postGAS({action:'logVisitRequest', member_id:m.member_id, nama:m.nama, no_hp:m.no_hp, periode:periode, catatan:m.alamat ? 'Alamat: '+m.alamat : ''}); } catch(e) {}
+      let msg = 'Halo kak, saya mau minta didatengin buat bayar iuran wifi bulan ' + periode + '%0A';
+      msg += 'Nama: ' + m.nama + '%0A';
+      msg += 'No HP: ' + m.no_hp + '%0A';
+      if (m.alamat) msg += 'Alamat: ' + m.alamat + '%0A';
+      msg += 'Makasih ya kak.';
+      const waUrl = 'https://wa.me/' + waAdmin + '?text=' + msg;
+      window.open(waUrl, '_blank');
+    }
+    // Admin
+    document.getElementById('formLoginAdmin').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const pin = document.getElementById('inputPin').value;
+      try {
+        const res = await postGAS({action:'auth', pin:pin});
+        if (!res.success) { Swal.fire('Gagal','PIN salah','error'); return; }
+        adminToken = pin;
+        document.getElementById('admin-login').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        showAdminTab('member'); loadMembers();
+        loadConfig();
+      } catch(err) { Swal.fire('Error','Gagal terhubung','error'); }
+    });
+    function logoutAdmin(){ adminToken=null; toggleToPublic(); }
+    function showAdminTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn=>{
+        btn.classList.remove('bg-blue-600','text-white'); btn.classList.add('bg-gray-200','text-gray-700','hover:bg-gray-300');
+      });
+      document.getElementById('tab-btn-'+tab).classList.remove('bg-gray-200','text-gray-700','hover:bg-gray-300'); document.getElementById('tab-btn-'+tab).classList.add('bg-blue-600','text-white');
+      document.getElementById('tab-member').classList.add('hidden'); document.getElementById('tab-input').classList.add('hidden'); document.getElementById('tab-rekap').classList.add('hidden');
+      document.getElementById('tab-'+tab).classList.remove('hidden');
+    }
+    async function loadMembers() {
+      try { const res = await postGAS({action:'getMembers', token:adminToken}); if (!res.success) return; memberListData=res.members; renderMembers(); } catch(e) {}
+    }
+    function renderMembers() {
+      const tb = document.getElementById('memberTableBody');
+      tb.innerHTML = '';
+      memberListData.forEach(m=>{
+        const tr = document.createElement('tr'); tr.innerHTML = '<td class="px-4 py-3 text-gray-500">'+m.member_id+'</td><td class="px-4 py-3 font-medium">'+m.nama+'</td><td class="px-4 py-3">'+m.no_hp+'</td><td class="px-4 py-3 text-gray-600 max-w-xs truncate" title="'+(m.alamat||'')+'">'+(m.alamat||'-')+'</td><td class="px-4 py-3">'+formatRupiah(m.tarif_default)+'</td><td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs '+(m.status==='AKTIF'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-700')+'">'+m.status+'</span></td><td class="px-4 py-3 text-center flex justify-center gap-2"><button onclick="openMemberModal(\'edit\',\''+m.member_id+'\')" class="text-blue-600 hover:text-blue-800 text-sm">Edit</button><button onclick="hapusMember(\''+m.member_id+'\')" class="text-red-600 hover:text-red-800 text-sm">Hapus</button></td>';
+        tb.appendChild(tr);
+      });
+    }
+    function openMemberModal(mode, mid='') {
+      document.getElementById('memberModal').classList.remove('hidden'); document.getElementById('memberModal').classList.add('flex');
+      if (mode==='add') { document.getElementById('memberModalTitle').textContent='Tambah Member'; document.getElementById('memberIdInput').value=''; document.getElementById('memberNama').value=''; document.getElementById('memberNoHp').value=''; document.getElementById('memberAlamat').value=''; document.getElementById('memberTarif').value=''; document.getElementById('memberStatusWrap').classList.add('hidden'); }
+      else { document.getElementById('memberModalTitle').textContent='Edit Member'; const m=memberListData.find(x=>x.member_id===mid); if (!m) return; document.getElementById('memberIdInput').value=m.member_id; document.getElementById('memberNama').value=m.nama; document.getElementById('memberNoHp').value=m.no_hp; document.getElementById('memberAlamat').value=m.alamat||''; document.getElementById('memberTarif').value=m.tarif_default; document.getElementById('memberStatus').value=m.status; document.getElementById('memberStatusWrap').classList.remove('hidden'); }
+    }
+    function closeMemberModal(){ document.getElementById('memberModal').classList.add('hidden'); document.getElementById('memberModal').classList.remove('flex'); }
+    async function saveMember() {
+      const mid=document.getElementById('memberIdInput').value;
+      const dataBody={ nama:document.getElementById('memberNama').value.trim(), no_hp:document.getElementById('memberNoHp').value.trim(), alamat:document.getElementById('memberAlamat').value.trim(), tarif_default:Number(document.getElementById('memberTarif').value)||0, token:adminToken };
+      if (!dataBody.nama){ Swal.fire('Perhatian','Nama wajib diisi','warning'); return; }
+      if (mid) { await postGAS({...dataBody, action:'updateMember', member_id:mid, status:document.getElementById('memberStatus').value}); } else { await postGAS({...dataBody, action:'addMember'}); }
+      closeMemberModal(); loadMembers();
+    }
+    async function hapusMember(mid) { const res=await Swal.fire({title:'Hapus member?',text:'Member akan di-set NONAKTIF (histori tetap aman)',icon:'warning',showCancelButton:true,confirmButtonText:'Ya, nonaktifkan'}); if (res.isConfirmed){ await postGAS({action:'deleteMember', member_id:mid, token:adminToken}); loadMembers(); } }
+    async function loadInputIuran() {
+      const periode = document.getElementById('inputPeriode').value;
+      if (!periode) return;
+      try { const res = await postGAS({action:'getPaymentsByPeriode', periode:periode, token:adminToken}); if (!res.success) return; inputIuranData=res.data; renderInputIuran(); } catch(e) {}
+    }
+    function renderInputIuran() {
+      const tb=document.getElementById('inputTableBody');
+      tb.innerHTML='';
+      inputIuranData.forEach((x,idx)=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td class="px-4 py-3"><input type="checkbox" class="row-check" data-idx="'+idx+'" '+(x.sudah_bayar?'checked':'')+' onchange="toggleRowCheck('+idx+')"></td><td class="px-4 py-3 font-medium">'+x.nama+'</td><td class="px-4 py-3">'+formatRupiah(x.tarif_default)+'</td><td class="px-4 py-3"><input type="number" class="px-2 py-1 border border-gray-300 rounded-lg text-sm w-28" value="'+x.nominal_bayar+'" id="nom-'+idx+'" onchange="setNominal('+idx+', this.value)"></td><td class="px-4 py-3">'+(x.sudah_bayar?'Ya':'Belum')+'</td><td class="px-4 py-3">'+(x.tgl_bayar||'-')+'</td><td class="px-4 py-3"><input type="text" class="px-2 py-1 border border-gray-300 rounded-lg text-sm w-40" value="'+(x.catatan||'')+'" id="cat-'+idx+'" onchange="setCatatan('+idx+', this.value)"></td>';
+        tb.appendChild(tr);
+      });
+      document.getElementById('checkAll').checked = inputIuranData.length>0 && inputIuranData.every(x=>x.sudah_bayar);
+    }
+    function toggleCheckAll(){ const chk=document.getElementById('checkAll').checked; document.querySelectorAll('.row-check').forEach(cb=>{ cb.checked=chk; const idx=Number(cb.dataset.idx); inputIuranData[idx].sudah_bayar=chk; if (chk && !inputIuranData[idx].nominal_bayar) inputIuranData[idx].nominal_bayar=inputIuranData[idx].tarif_default; }); renderInputIuran(); }
+    function toggleRowCheck(idx){ const cb=event.target; inputIuranData[idx].sudah_bayar=cb.checked; if (cb.checked && !inputIuranData[idx].nominal_bayar) inputIuranData[idx].nominal_bayar=inputIuranData[idx].tarif_default; renderInputIuran(); }
+    function setNominal(idx,v){ inputIuranData[idx].nominal_bayar=Number(v)||0; }
+    function setCatatan(idx,v){ inputIuranData[idx].catatan=v; }
+    async function saveInputIuran() {
+      const periode = document.getElementById('inputPeriode').value;
+      if (!periode) return Swal.fire('Perhatian','Pilih periode dulu','warning');
+      const items = inputIuranData.filter(x=>x.sudah_bayar).map(x=>({member_id:x.member_id, sudah_bayar:true, nominal_bayar:x.nominal_bayar, metode:'MANUAL', catatan:x.catatan}));
+      if (items.length===0) return Swal.fire('Perhatian','Belum ada yang dicentang','warning');
+      try { await postGAS({action:'markPaid', periode:periode, items:items, token:adminToken}); Swal.fire('Sukses','Data pembayaran tersimpan','success'); loadInputIuran(); loadRekap(); } catch(e) { Swal.fire('Error','Gagal menyimpan','error'); }
+    }
+    async function loadRekap() {
+      const periode = document.getElementById('rekapPeriode').value;
+      if (!periode) return;
+      try { const res = await postGAS({action:'getRekap', periode:periode, token:adminToken}); if (!res.success) return; rekapData=res.data; rekapSummary=res.summary; renderRekap(); } catch(e) {}
+    }
+    function renderRekap() {
+      const tb=document.getElementById('rekapTableBody');
+      tb.innerHTML='';
+      rekapData.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td class="px-4 py-3 font-medium">'+r.nama+'</td><td class="px-4 py-3">'+formatRupiah(r.tarif_default)+'</td><td class="px-4 py-3">'+(r.status==='LUNAS'?formatRupiah(r.nominal_bayar):'-')+'</td><td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs '+(r.status==='LUNAS'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700')+'">'+r.status+'</span></td><td class="px-4 py-3">'+(r.tgl_bayar||'-')+'</td><td class="px-4 py-3">'+(r.metode||'-')+'</td><td class="px-4 py-3">'+(r.catatan||'-')+'</td>';
+        tb.appendChild(tr);
+      });
+      document.getElementById('sumTerkumpul').textContent=formatRupiah(rekapSummary.totalTerkumpul||0);
+      document.getElementById('sumLunas').textContent=rekapSummary.lunas||0;
+      document.getElementById('sumBelum').textContent=rekapSummary.belum||0;
+      document.getElementById('sumSisa').textContent=formatRupiah(rekapSummary.sisa||0);
+    }
+    function exportCSV() {
+      if (rekapData.length===0) return Swal.fire('Perhatian','Belum ada data rekap','warning');
+      const periode = document.getElementById('rekapPeriode').value;
+      const headers = ['Nama','Tarif Default','Nominal Bayar','Status','Tgl Bayar','Metode','Catatan','Alamat'];
+      const rows = rekapData.map(r=>{
+        // cari alamat
+        const m = memberListData.find(x=>x.nama===r.nama);
+        const alamat = m ? m.alamat : '';
+        return [r.nama, r.tarif_default, r.status==='LUNAS'?r.nominal_bayar:'', r.status, r.tgl_bayar, r.metode, r.catatan, alamat].join(',');
+      });
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url; a.download='rekap_iuran_'+periode+'.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    window.addEventListener('DOMContentLoaded', ()=>{ setPeriodeInputs(); loadConfig(); });
+  </script>
+</body>
+</html>
